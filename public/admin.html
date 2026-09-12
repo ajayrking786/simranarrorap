@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin Dashboard — SA</title>
+  <link rel="stylesheet" href="/admin.css" />
+  <link rel="stylesheet" href="/admin-premium.css" />
+  <link rel="stylesheet" href="/admin-responsive.css" />
+  <link rel="stylesheet" href="/admin-view-overrides.css" />
+</head>
+<body>
+<div id="adminApp" class="admin-shell hidden">
+  <aside class="sidebar">
+    <a class="admin-brand" href="/">Simran Arrora <span>♡</span></a>
+    <p class="side-label">ADMIN PANEL</p>
+    <nav id="sideNav">
+      <button data-view="dashboard" class="active">Dashboard</button><button data-view="appointments">Appointments</button><button data-view="customers">Customers</button><button data-view="services">Services</button><button data-view="configuration">Booking Configuration</button><button data-view="prices">Price Lists</button><button data-view="platforms">Platforms & Links</button><button data-view="gallery">Gallery</button><button data-view="video-platforms">Videos / Video Platforms</button><button data-view="calendar">Calendar</button><button data-view="live">Live Management</button><button data-view="payments">Payments</button><button data-view="qr">QR Management</button><button data-view="integrations">Google Integrations</button><button data-view="messages">Contact Messages</button><button data-view="documents">Legal Pages</button><button data-view="notifications">Notifications</button><button data-view="settings">Settings</button>
+    </nav>
+    <div class="side-bottom"><a href="/">View Website</a><button id="adminLogout">Logout</button></div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div><p class="eyebrow">CONTROL CENTER</p><h1 id="viewTitle">Dashboard</h1></div><div class="top-actions"><input class="top-search" placeholder="Search dashboard" aria-label="Search dashboard"><button class="top-icon menu-toggle" id="menuToggle" aria-label="Open navigation">☰</button><button class="top-icon" id="notificationButton" aria-label="Notifications">♡</button><div id="adminName" class="avatar"></div></div></header>
+    <section id="view"></section>
+  </main>
+</div>
+<div id="adminGate" class="gate hidden">
+  <form id="adminLogin" class="login-card">
+    <a class="admin-brand" href="/">Simran Arrora <span>♡</span></a><h1>Admin Sign In</h1><p>Use the secure admin credentials configured on the server.</p>
+    <label>Email<input id="adminEmail" type="email" required /></label><label>Password<input id="adminPassword" type="password" required /></label><button class="primary">Sign In</button><p id="loginMsg" class="muted"></p>
+  </form>
+</div>
+<div id="adminToast" class="toast"></div>
+<script src="/admin.js"></script>
+</body>
+</html>

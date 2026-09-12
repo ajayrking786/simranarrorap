@@ -1,0 +1,34 @@
+/* Final reference alignment overrides. */
+.is-hidden{display:none!important}
+#accountBtn{font-size:0}
+#accountBtn:after{content:'♥ Follow Me';font-size:12px}
+#accountBtn{white-space:nowrap;min-width:108px}
+.hero-copy h1 span{display:inline}
+.legal-page{max-width:900px;padding-top:130px}
+.legal-page h1{font-family:var(--script);font-size:clamp(58px,8vw,100px);font-weight:400;line-height:1;margin:0 0 18px}
+.legal-page h2{font-family:var(--serif);font-size:34px;font-weight:500;margin:38px 0 8px}
+.legal-page p{max-width:760px;color:#ddd6dc}
+.footer-links{display:flex;flex-wrap:wrap;gap:12px 18px;justify-content:flex-end;font-size:11px;color:#cfc8ce}
+.footer-links a:hover{color:var(--pink-soft)}
+.gallery-item{border:0;background:none;padding:0;cursor:zoom-in;display:block;width:100%}
+.gallery-lightbox{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:30px;background:rgba(0,0,0,.9);cursor:zoom-out}
+.gallery-lightbox-image{max-width:min(100%,1000px);max-height:90vh;object-fit:contain;border:1px solid var(--line);border-radius:16px}
+@media(min-width:821px){
+	.container{width:calc(100% - 70px);max-width:none}
+	.nav{height:55px}
+	.nav-links{gap:31px}
+	.hero{height:400px;min-height:400px;max-height:400px;margin-top:55px}
+	.hero-grid{padding-top:0}
+	.hero-copy{max-width:590px}
+	.hero-copy h1{font-size:92px}
+	.hero-copy>p:not(.eyebrow){margin:15px 0;font-size:14px}
+	.hero-subtitle{font-size:20px!important}
+	.hero-actions{margin-top:18px}
+	.script-note{bottom:39%;right:5%;font-size:38px}
+	.scroll{bottom:24px}
+	#features{padding-top:15px;padding-bottom:30px}
+	#features .section-head{display:none}
+	.feature-grid{gap:14px}
+	.feature-card{min-height:254px;padding:20px}
+}
+@media(max-width:560px){#accountBtn:after{content:'♥';font-size:15px}}
