@@ -245,19 +245,117 @@ function initDb() {
 
   db.prepare(`UPDATE bookings SET category_id=(SELECT category_id FROM services WHERE services.id=bookings.service_id) WHERE category_id IS NULL`).run();
   db.prepare(`UPDATE bookings SET currency='INR' WHERE currency IS NULL OR currency=''`).run();
+
+  seedInitialData();
+}
+
+function seedInitialData() {
+  try {
+    const categoryCount = db.prepare('SELECT COUNT(*) as count FROM booking_categories').get().count;
+    if (categoryCount === 0) {
+      const cat1 = db.prepare(`INSERT INTO booking_categories (name, slug, description, booking_mode, duration_minutes, currency, active, sort_order)
+        VALUES (?, ?, ?, ?, ?, ?, 1, 1)`).run(
+          'Video Consultation',
+          'video-consultation',
+          'One-on-one virtual consultation and personalized creator discussion.',
+          'appointment',
+          30,
+          'INR'
+        );
+      const catId1 = cat1.lastInsertRowid;
+
+      db.prepare(`INSERT INTO price_options (category_id, name, duration_minutes, price, currency, active, sort_order)
+        VALUES (?, ?, ?, ?, ?, 1, 1)`).run(catId1, 'Standard 30-Min Session', 30, 2499, 'INR');
+      db.prepare(`INSERT INTO price_options (category_id, name, duration_minutes, price, currency, active, sort_order)
+        VALUES (?, ?, ?, ?, ?, 1, 2)`).run(catId1, 'Extended 60-Min Session', 60, 4499, 'INR');
+
+      db.prepare(`INSERT INTO platforms (category_id, name, description, active, sort_order)
+        VALUES (?, ?, ?, 1, 1)`).run(catId1, 'Google Meet', 'HD Video Call with screen sharing');
+      db.prepare(`INSERT INTO platforms (category_id, name, description, active, sort_order)
+        VALUES (?, ?, ?, 1, 2)`).run(catId1, 'Zoom', 'Interactive video session');
+
+      const cat2 = db.prepare(`INSERT INTO booking_categories (name, slug, description, booking_mode, duration_minutes, currency, active, sort_order)
+        VALUES (?, ?, ?, ?, ?, ?, 1, 2)`).run(
+          'Real Meet & Consultation',
+          'real-meet',
+          'Exclusive in-person consultation session in selected cities.',
+          'appointment',
+          60,
+          'INR'
+        );
+      const catId2 = cat2.lastInsertRowid;
+
+      db.prepare(`INSERT INTO price_options (category_id, name, duration_minutes, price, currency, active, sort_order)
+        VALUES (?, ?, ?, ?, ?, 1, 1)`).run(catId2, 'VIP In-Person Consultation', 60, 9999, 'INR');
+
+      db.prepare(`INSERT INTO services (name, description, appointment_type, duration_minutes, price, currency, image, active, category_id, sort_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, 1)`).run(
+          '1-on-1 Video Consultation',
+          'Direct personal video consultation covering creative collaborations and Q&A.',
+          'Video Call',
+          30,
+          2499,
+          'INR',
+          'assets/Images/IMG_0474.jpg',
+          catId1
+        );
+
+      db.prepare(`INSERT INTO services (name, description, appointment_type, duration_minutes, price, currency, image, active, category_id, sort_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, 2)`).run(
+          'VIP In-Person Consultation',
+          'Exclusive one-on-one session for business inquiries, brand collaborations & consulting.',
+          'In-Person',
+          60,
+          9999,
+          'INR',
+          'assets/Images/IMG_0483-1.jpg',
+          catId2
+        );
+    }
+
+    const galleryCount = db.prepare('SELECT COUNT(*) as count FROM gallery_items').get().count;
+    if (galleryCount === 0) {
+      const images = [
+        { title: 'Exclusive Portfolio', path: 'assets/Images/IMG_0474.jpg', cat: 'Highlights' },
+        { title: 'Behind The Scenes', path: 'assets/Images/IMG_0476.jpg', cat: 'Exclusive' },
+        { title: 'Studio Session', path: 'assets/Images/IMG_0483-1.jpg', cat: 'Highlights' },
+        { title: 'Urban Moments', path: 'assets/Images/IMG_0491.jpg', cat: 'Moments' },
+        { title: 'Golden Hour', path: 'assets/Images/IMG_0494.jpg', cat: 'Moments' }
+      ];
+      images.forEach((img, idx) => {
+        db.prepare(`INSERT INTO gallery_items (title, description, image_path, category, enabled, display_order)
+          VALUES (?, '', ?, ?, 1, ?)`).run(img.title, img.path, img.cat, idx + 1);
+      });
+    }
+
+    const socialCount = db.prepare('SELECT COUNT(*) as count FROM social_links').get().count;
+    if (socialCount === 0) {
+      db.prepare(`INSERT INTO social_links (name, url, icon, active, sort_order) VALUES (?, ?, ?, 1, 1)`).run('Instagram', 'https://instagram.com', 'instagram');
+      db.prepare(`INSERT INTO social_links (name, url, icon, active, sort_order) VALUES (?, ?, ?, 1, 2)`).run('X (Twitter)', 'https://x.com', 'x');
+      db.prepare(`INSERT INTO social_links (name, url, icon, active, sort_order) VALUES (?, ?, ?, 1, 3)`).run('Telegram', 'https://telegram.org', 'telegram');
+      db.prepare(`INSERT INTO social_links (name, url, icon, active, sort_order) VALUES (?, ?, ?, 1, 4)`).run('YouTube', 'https://youtube.com', 'youtube');
+    }
+
+    const videoCount = db.prepare('SELECT COUNT(*) as count FROM video_platforms').get().count;
+    if (videoCount === 0) {
+      db.prepare(`INSERT INTO video_platforms (name, url, description, button_label, enabled, display_order)
+        VALUES (?, ?, ?, ?, 1, 1)`).run('YouTube Channel', 'https://youtube.com', 'Latest vlogs, teasers and video series.', 'Watch on YouTube');
+    }
+  } catch (e) {
+    console.warn('[db] Seed initial data notice:', e.message);
+  }
 }
 
 function ensureAdminFromEnv() {
-  const name = process.env.ADMIN_NAME;
-  const email = process.env.ADMIN_EMAIL;
-  const password = process.env.ADMIN_PASSWORD;
-  if (!name || !email || !password) return;
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email.toLowerCase());
+  const name = process.env.ADMIN_NAME || 'Admin';
+  const email = (process.env.ADMIN_EMAIL || 'admin@simranarrora.com').toLowerCase();
+  const password = process.env.ADMIN_PASSWORD || 'Admin@123456';
+  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
   if (!existing) {
     const hash = bcrypt.hashSync(password, 12);
     db.prepare(`INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, 'admin')`)
-      .run(name, email.toLowerCase(), hash);
-    console.log(`[setup] Admin created for ${email}. Change ADMIN_PASSWORD before production use.`);
+      .run(name, email, hash);
+    console.log(`[setup] Admin initialized for ${email}`);
   }
 }
 

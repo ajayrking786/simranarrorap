@@ -1,0 +1,6 @@
+{
+  "name": "Simran Premium",
+  "description": "Production-oriented premium creator/consultation booking website with admin dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
