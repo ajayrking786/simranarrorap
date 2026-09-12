@@ -15,5 +15,12 @@ data/*
 !data/.gitkeep
 data/*.db
 data/*.db-*
+*.sqlite
+*.sqlite3
+*.db
+*.db-*
+private-data/
+customer-data/
+payment-data/
 public/uploads/*
 !public/uploads/.gitkeep
