@@ -1,6 +1,6 @@
 {
   "name": "Simran Premium",
-  "description": "Production-oriented premium creator/consultation booking website with admin dashboard.",
-  "requestFramePermissions": [],
+  "description": "Production-oriented premium creator and consultation platform with Google Workspace (Meet, Sheets, Docs, Forms, Drive) and Firebase integration.",
+  "requestFramePermissions": ["camera", "microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

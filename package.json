@@ -7,21 +7,26 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
-    "build": "node --check server.js && node --check db.js && node --check google.js"
+    "build": "node --check server.js && node --check db.js && node --check google.js && node --check data-store.js && node --check firebase-backend.js && node --check gemini-backend.js && node --check netlify/functions/api.js",
+    "lint": "node --check server.js && node --check db.js && node --check google.js && node --check data-store.js && node --check firebase-backend.js && node --check gemini-backend.js && node --check netlify/functions/api.js"
   },
-  "engines": {"node": ">=20"},
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
+    "@google/genai": "^2.22.0",
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^11.7.0",
-    "connect-sqlite3": "^0.9.15",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
+    "firebase": "^12.19.0",
+    "firebase-admin": "^14.4.0",
     "googleapis": "^144.0.0",
     "helmet": "^8.0.0",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.16",
     "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0"
+    "passport-google-oauth20": "^2.0.0",
+    "serverless-http": "^4.0.0"
   }
 }

@@ -1,0 +1,216 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "phone": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Service": {
+      "title": "Service",
+      "description": "Consultation service offering",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "durationMinutes": { "type": "number" },
+        "price": { "type": "number" },
+        "currency": { "type": "string" },
+        "appointmentType": { "type": "string" },
+        "bookingMethods": { "type": "array", "items": { "type": "string" } },
+        "priceOptions": { "type": "array" },
+        "enabled": { "type": "boolean" },
+        "order": { "type": "number" }
+      },
+      "required": ["name", "price"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Consultation and session booking records",
+      "type": "object",
+      "properties": {
+        "bookingCode": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "category": { "type": "string" },
+        "serviceName": { "type": "string" },
+        "appointmentType": { "type": "string" },
+        "bookingMethod": { "type": "string" },
+        "customerDob": { "type": "string" },
+        "customerAge": { "type": "number" },
+        "bookingDate": { "type": "string" },
+        "bookingTime": { "type": "string" },
+        "location": { "type": "string" },
+        "durationMinutes": { "type": "number" },
+        "price": { "type": "number" },
+        "currency": { "type": "string" },
+        "notes": { "type": "string" },
+        "paymentStatus": { "type": "string", "enum": ["PENDING VERIFICATION", "APPROVED", "REJECTED", "UNPAID"] },
+        "status": { "type": "string", "enum": ["PENDING", "APPROVED", "REJECTED", "CANCELLED", "RESCHEDULED"] },
+        "rejectionReason": { "type": "string" },
+        "googleMeetUrl": { "type": "string" },
+        "googleCalendarEventId": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "name", "email", "status"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Customer payment proof submissions",
+      "type": "object",
+      "properties": {
+        "bookingId": { "type": "string" },
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "currency": { "type": "string" },
+        "method": { "type": "string" },
+        "transactionRef": { "type": "string" },
+        "proofUrl": { "type": "string" },
+        "note": { "type": "string" },
+        "status": { "type": "string", "enum": ["PENDING VERIFICATION", "APPROVED", "REJECTED"] },
+        "createdAt": { "type": "string" },
+        "verifiedAt": { "type": "string" }
+      },
+      "required": ["bookingId", "userId", "transactionRef", "status"]
+    },
+    "Live": {
+      "title": "Live",
+      "description": "Live stream session configuration",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "liveUrl": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "startDate": { "type": "string" },
+        "startTime": { "type": "string" },
+        "endDate": { "type": "string" },
+        "endTime": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "GalleryItem": {
+      "title": "GalleryItem",
+      "description": "Gallery images metadata",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "storageUrl": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "published": { "type": "boolean" },
+        "sortOrder": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["storageUrl", "published"]
+    },
+    "VideoItem": {
+      "title": "VideoItem",
+      "description": "Videos and video platforms metadata",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "storagePath": { "type": "string" },
+        "published": { "type": "boolean" },
+        "sortOrder": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "published"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Customer status notifications",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "bookingId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "title", "message"]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "Inquiries and contact messages",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "email", "message"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "Application configuration settings",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "value": { "type": "object" },
+        "updatedAt": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User accounts"
+    },
+    "/services/{serviceId}": {
+      "schema": { "$ref": "#/entities/Service" },
+      "description": "Available consultation and creator services"
+    },
+    "/bookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/Booking" },
+      "description": "Consultation appointments and bookings"
+    },
+    "/payments/{paymentId}": {
+      "schema": { "$ref": "#/entities/Payment" },
+      "description": "Customer payments and verification records"
+    },
+    "/live/{liveId}": {
+      "schema": { "$ref": "#/entities/Live" },
+      "description": "Live stream session status and links"
+    },
+    "/gallery/{galleryId}": {
+      "schema": { "$ref": "#/entities/GalleryItem" },
+      "description": "Gallery media records"
+    },
+    "/videos/{videoId}": {
+      "schema": { "$ref": "#/entities/VideoItem" },
+      "description": "Video links and streaming assets"
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/Notification" },
+      "description": "User notification alerts"
+    },
+    "/contactMessages/{messageId}": {
+      "schema": { "$ref": "#/entities/ContactMessage" },
+      "description": "Contact form submissions"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/Setting" },
+      "description": "Global website and payment settings"
+    }
+  }
+}

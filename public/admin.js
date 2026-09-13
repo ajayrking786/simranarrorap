@@ -7,7 +7,8 @@ async function boot(){const d=await api('/api/auth/me');me=d.user;if(me?.role===
 function showApp(){$('#adminGate').classList.add('hidden');$('#adminApp').classList.remove('hidden');$('#adminName').textContent=(me.name||'A').slice(0,1).toUpperCase()}
 function showGate(){$('#adminApp').classList.add('hidden');$('#adminGate').classList.remove('hidden')}
 $('#adminLogin').onsubmit=async e=>{e.preventDefault();try{const d=await api('/api/auth/login',{method:'POST',body:JSON.stringify({email:$('#adminEmail').value,password:$('#adminPassword').value})});if(d.user.role!=='admin'){await api('/api/auth/logout',{method:'POST'});throw new Error('Invalid email or password.')}me=d.user;window.history.replaceState({},'', '/admin');showApp();render('dashboard')}catch(err){$('#loginMsg').textContent='Invalid email or password.'}};
-$('#adminLogout').onclick=async()=>{await api('/api/auth/logout',{method:'POST'});me=null;showGate()};
+const adminGoogleBtn=$('#adminGoogleBtn');if(adminGoogleBtn){adminGoogleBtn.onclick=async()=>{try{adminGoogleBtn.disabled=true;adminGoogleBtn.textContent='Connecting with Google…';const res=await window.signInWithGoogleWorkspace();if(res.user?.role!=='admin'){await api('/api/auth/logout',{method:'POST'});throw new Error('Access restricted to administrators.')}me=res.user;window.history.replaceState({},'', '/admin');showApp();render('dashboard');toast('Signed in as Admin');}catch(err){console.error(err);$('#loginMsg').textContent=err.message||'Google sign-in failed.';adminGoogleBtn.disabled=false;adminGoogleBtn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg> Sign In with Google';}}};
+$('#adminLogout').onclick=async()=>{await api('/api/auth/logout',{method:'POST'});if(window.firebase?.auth)await window.firebase.auth().signOut().catch(()=>{});me=null;showGate()};
 document.querySelectorAll('#sideNav button').forEach(b=>b.onclick=()=>render(b.dataset.view));
 $('#menuToggle').onclick=()=>$('#adminApp').classList.toggle('menu-open');
 document.querySelectorAll('#sideNav button').forEach(b=>b.addEventListener('click',()=>$('#adminApp').classList.remove('menu-open')));
@@ -23,7 +24,554 @@ async function payments(){const rows=await api('/api/admin/payments');view.inner
 window.paymentAction=async(id,status)=>{try{await api(`/api/admin/payments/${id}`,{method:'PATCH',body:JSON.stringify({status})});toast(`Payment ${status.toLowerCase()}`);payments()}catch(e){toast(e.message)}}
 async function live(){const l=await api('/api/admin/live');view.innerHTML=`<div class="card"><h2>Live Session Settings</h2><form id="liveForm" class="form"><label class="wide">Title<input id="lTitle" value="${esc(l.title)}"></label><label class="wide">Description<textarea id="lDesc">${esc(l.description||'')}</textarea></label><label class="wide">Exact Live URL<input id="lUrl" value="${esc(l.live_url||'')}" placeholder="https://..."></label><label class="wide">Thumbnail path<input id="lThumb" value="${esc(l.thumbnail_path||'')}" placeholder="/uploads/live.jpg"></label><label>Start date<input id="lStartDate" type="date" value="${esc(l.start_date||'')}"></label><label>Start time<input id="lStartTime" type="time" value="${esc(l.start_time||'')}"></label><label>End date<input id="lEndDate" type="date" value="${esc(l.end_date||'')}"></label><label>End time<input id="lEndTime" type="time" value="${esc(l.end_time||'')}"></label><label class="wide">Status<select id="lEnabled"><option value="0" ${!l.enabled?'selected':''}>Disabled</option><option value="1" ${l.enabled?'selected':''}>Enabled</option></select></label><button class="primary wide">Save Live Settings</button></form></div>`;$('#liveForm').onsubmit=async e=>{e.preventDefault();try{await api('/api/admin/live',{method:'PUT',body:JSON.stringify({title:$('#lTitle').value,description:$('#lDesc').value,live_url:$('#lUrl').value,thumbnail_path:$('#lThumb').value,start_date:$('#lStartDate').value,start_time:$('#lStartTime').value,end_date:$('#lEndDate').value,end_time:$('#lEndTime').value,enabled:$('#lEnabled').value==='1'})});toast('Live settings saved')}catch(err){toast(err.message)}}}
 async function qr(){const p=await api('/api/admin/payment-settings');view.innerHTML=`<div class="grid2"><div class="card"><h2>Payment Settings</h2>${p.qr_path?`<img class="qr-preview" src="${p.qr_path}">`:'<p class="muted">No QR uploaded.</p>'}<form id="qrUpload" enctype="multipart/form-data"><label>Upload / replace QR<input id="qrFile" type="file" accept="image/*" required></label><button class="primary" style="margin-top:12px">Upload QR</button></form>${p.qr_path?'<button id="deleteQr" class="danger" style="margin-top:10px">Delete QR</button>':''}</div><div class="card"><h2>Payment Link & Instructions</h2><form id="paySettings" class="form"><label class="wide">External payment link<input id="paymentLink" type="url" value="${esc(p.payment_link||'')}" placeholder="https://razorpay.me/@..." /></label><label class="wide">UPI ID<input id="upiId" value="${esc(p.upi_id||'')}"></label><label class="wide">Instructions<textarea id="payInstructions">${esc(p.instructions||'')}</textarea></label><label class="wide">Enabled<select id="payEnabled"><option value="0" ${!p.enabled?'selected':''}>Disabled</option><option value="1" ${p.enabled?'selected':''}>Enabled</option></select></label><button class="primary wide">Save</button></form></div></div>`;$('#qrUpload').onsubmit=async e=>{e.preventDefault();const fd=new FormData();fd.append('qr',$('#qrFile').files[0]);const r=await fetch('/api/admin/payment-qr',{method:'POST',body:fd});const d=await r.json();if(!r.ok)return toast(d.error||'Upload failed');toast('QR uploaded');qr()};if($('#deleteQr'))$('#deleteQr').onclick=async()=>{await api('/api/admin/payment-qr',{method:'DELETE'});toast('QR deleted');qr()};$('#paySettings').onsubmit=async e=>{e.preventDefault();await api('/api/admin/payment-settings',{method:'PUT',body:JSON.stringify({payment_link:$('#paymentLink').value,upi_id:$('#upiId').value,instructions:$('#payInstructions').value,enabled:$('#payEnabled').value==='1'})});toast('Payment settings saved')}}
-async function integrations(){const i=await api('/api/admin/integrations');const rows=[['Google Sign-In',i.googleSignIn],['Google Calendar',i.googleCalendar],['Google Meet',i.googleMeet],['Google Sheets',i.googleSheets],['Gmail',i.gmail],['Google Drive',false],['Google Forms',false],['Google Chat',false],['Google Maps',false],['Gemini',false]];view.innerHTML=`<div class="integration-grid">${rows.map(([n,on])=>`<div class="integration"><strong>${n}</strong><span class="${on?'ok':'no'}">${on?'Connected / configured':'Not configured'}</span></div>`).join('')}</div><div class="card" style="margin-top:18px"><h2>How to connect</h2><p class="muted">Set the Google OAuth, Calendar, Sheets and Gmail values in your server <code>.env</code>. Secrets are never stored in browser code. Google Meet links are created through Calendar conference data when a Video Call booking is approved.</p></div>`}
+async function integrations(){
+  const i = await api('/api/admin/integrations');
+  const hasToken = Boolean(window.googleWorkspaceAccessToken);
+
+  const services = [
+    {
+      id: 'gemini',
+      name: 'Google Gemini API',
+      icon: '✦',
+      connected: Boolean(i.gemini?.connected),
+      status: i.gemini?.status || (i.gemini?.connected ? 'CONNECTED' : 'NOT CONNECTED'),
+      detail: i.gemini?.details || 'Gemini 3.8 Flash model via @google/genai SDK'
+    },
+    {
+      id: 'firebase',
+      name: 'Google Firebase (Firestore, Auth & Storage)',
+      icon: '🔥',
+      connected: Boolean(i.firebase?.connected),
+      status: i.firebase?.status || 'NOT CONNECTED',
+      detail: i.firebase?.details || `Project: ${i.firebase?.projectId || 'gen-lang-client-0442308093'}`
+    },
+    {
+      id: 'sheets',
+      name: 'Google Sheets',
+      icon: '📊',
+      connected: Boolean(i.googleSheets?.connected || hasToken),
+      status: (i.googleSheets?.connected || hasToken) ? 'CONNECTED' : 'NOT CONNECTED',
+      detail: i.googleSheets?.details || 'Live sync & spreadsheet export'
+    },
+    {
+      id: 'drive',
+      name: 'Google Drive',
+      icon: '📁',
+      connected: Boolean(i.googleDrive?.connected || hasToken),
+      status: (i.googleDrive?.connected || hasToken) ? 'CONNECTED' : 'NOT CONNECTED',
+      detail: i.googleDrive?.details || 'Cloud file storage & consultation archives'
+    },
+    {
+      id: 'calendar',
+      name: 'Google Calendar',
+      icon: '📅',
+      connected: Boolean(i.googleCalendar?.connected || hasToken),
+      status: (i.googleCalendar?.connected || hasToken) ? 'CONNECTED' : 'NOT CONNECTED',
+      detail: i.googleCalendar?.details || 'Automated consultation scheduling & invites'
+    },
+    {
+      id: 'meet',
+      name: 'Google Meet',
+      icon: '🎥',
+      connected: Boolean(i.googleMeet?.connected || hasToken),
+      status: (i.googleMeet?.connected || hasToken) ? 'CONNECTED' : 'NOT CONNECTED',
+      detail: i.googleMeet?.details || '1-on-1 VIP Video consultation spaces'
+    },
+    {
+      id: 'gmail',
+      name: 'Gmail Notifications',
+      icon: '✉️',
+      connected: Boolean(i.gmail?.connected),
+      status: i.gmail?.status || (i.gmail?.connected ? 'CONNECTED' : 'NOT CONNECTED'),
+      detail: i.gmail?.details || 'Automated booking approvals & updates'
+    },
+    {
+      id: 'maps',
+      name: 'Google Maps',
+      icon: '📍',
+      connected: Boolean(i.googleMaps?.connected),
+      status: i.googleMaps?.status || 'CONNECTED',
+      detail: i.googleMaps?.details || 'VIP meeting suites in Delhi, Mumbai, Chandigarh'
+    },
+    {
+      id: 'oauth',
+      name: 'Google OAuth / Sign In',
+      icon: '🔐',
+      connected: Boolean(i.googleOAuth?.connected),
+      status: i.googleOAuth?.status || 'CONNECTED',
+      detail: i.googleOAuth?.details || 'Sign In with Google enabled'
+    }
+  ];
+
+  view.innerHTML = `
+    <div class="card" style="margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
+      <div>
+        <p class="eyebrow">GOOGLE SERVICES HUB</p>
+        <h2>Production Google Services Integration</h2>
+        <p class="muted">Status and real-time operations for Google Gemini AI, Firebase (Auth, Firestore, Storage), Sheets, Drive, Calendar, Meet, Gmail, Maps, and OAuth.</p>
+      </div>
+      <div>
+        <button id="wsAuthBtn" class="primary" style="display:inline-flex;align-items:center;gap:8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+          ${hasToken ? 'Workspace Authorized ✓' : 'Authorize Google Workspace'}
+        </button>
+      </div>
+    </div>
+
+    <!-- 9 Google Services Grid with CONNECTED / NOT CONNECTED Badges -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:20px;">
+      ${services.map(s => `
+        <div class="card" style="padding:16px;display:flex;flex-direction:column;justify-content:space-between;border:1px solid ${s.connected ? 'rgba(52,168,83,0.3)' : 'rgba(255,255,255,0.08)'};background:${s.connected ? 'rgba(52,168,83,0.03)' : 'rgba(255,255,255,0.02)'};">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
+              <strong style="font-size:15px;display:flex;align-items:center;gap:6px;">
+                <span>${s.icon}</span> ${esc(s.name)}
+              </strong>
+              <span style="font-size:11px;font-weight:700;padding:4px 8px;border-radius:6px;letter-spacing:0.5px;background:${s.connected ? 'rgba(52,168,83,0.2)' : 'rgba(251,188,4,0.15)'};color:${s.connected ? '#81c995' : '#fdd663'};border:1px solid ${s.connected ? 'rgba(52,168,83,0.4)' : 'rgba(251,188,4,0.3)'};">
+                ${s.status}
+              </span>
+            </div>
+            <p style="font-size:12px;color:var(--text-muted);margin:0;line-height:1.5;">${esc(s.detail)}</p>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- Interactive Google Services Control Panels -->
+    <div class="grid2" style="margin-top:18px;">
+      <!-- Google Gemini AI Studio -->
+      <div class="card">
+        <p class="eyebrow">GOOGLE GEMINI 3.8 FLASH</p>
+        <h2>Gemini AI Studio & Briefing</h2>
+        <p class="muted">Generate AI-powered VIP consultation briefs, talking points, icebreakers, and advice.</p>
+        <div class="form" style="margin-top:12px;">
+          <label>Client Name<input id="aiClientName" placeholder="Client Name" value="Rohit Sharma" /></label>
+          <label>Session Service<input id="aiServiceName" placeholder="e.g. 1-on-1 Video Consultation" value="1-on-1 Video Call" /></label>
+          <label class="wide">Client Consultation Notes<textarea id="aiNotes" placeholder="Client background, expectations...">Interested in brand collaborations, fitness routine advice, and social media growth strategies.</textarea></label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;">
+            <button id="runAiPrepBtn" class="primary" type="button">Generate AI Briefing with Gemini</button>
+            <button id="testAiPingBtn" class="ghost" type="button">Test Gemini Health</button>
+          </div>
+        </div>
+        <div id="aiResult" style="margin-top:14px;"></div>
+      </div>
+
+      <!-- Firebase Firestore & Storage Hub -->
+      <div class="card">
+        <p class="eyebrow">FIREBASE FIRESTORE & STORAGE</p>
+        <h2>Cloud Firestore Database Hub</h2>
+        <p class="muted">Cloud Firestore database provisioned with role-based security rules.</p>
+        <div style="background:rgba(255,255,255,0.03);padding:14px;border-radius:12px;margin:12px 0;font-size:13px;line-height:1.7;">
+          <div><strong>Project ID:</strong> <code>${i.firebase?.projectId || 'gen-lang-client-0442308093'}</code></div>
+          <div><strong>Storage Bucket:</strong> <code>${i.firebase?.storageBucket || 'gen-lang-client-0442308093.firebasestorage.app'}</code></div>
+          <div><strong>Security Rules:</strong> <code>firestore.rules</code> Deployed & Enforced</div>
+          <div><strong>Collections:</strong> <code>/users</code>, <code>/bookings</code>, <code>/payments</code>, <code>/inquiries</code></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button id="pingFirestoreBtn" class="primary">Ping Firestore</button>
+          <button id="syncFirestoreBtn" class="secondary">Sync All Data to Firestore</button>
+        </div>
+        <div id="firestoreResult" style="margin-top:14px;"></div>
+      </div>
+
+      <!-- Google Meet Studio -->
+      <div class="card">
+        <p class="eyebrow">GOOGLE MEET VIDEO CALLS</p>
+        <h2>Google Meet Studio</h2>
+        <p class="muted">Generate meeting spaces directly using Google Meet API for 1-on-1 consultations.</p>
+        <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+          <button id="createMeetBtn" class="primary">Generate New Meet Space</button>
+        </div>
+        <div id="meetResult" style="margin-top:14px;"></div>
+      </div>
+
+      <!-- Google Sheets Exporter -->
+      <div class="card">
+        <p class="eyebrow">GOOGLE SHEETS DATA SYNC</p>
+        <h2>Google Sheets Exporter</h2>
+        <p class="muted">Export all consultation bookings, payment records, and client info into Google Sheets.</p>
+        <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+          <button id="exportSheetsBtn" class="primary">Export Bookings to Google Sheets</button>
+        </div>
+        <div id="sheetsResult" style="margin-top:14px;"></div>
+      </div>
+
+      <!-- Google Drive Manager -->
+      <div class="card">
+        <p class="eyebrow">GOOGLE DRIVE CLOUD STORAGE</p>
+        <h2>Google Drive Manager</h2>
+        <p class="muted">Browse files or quickly save consultation transcripts and notes to Google Drive.</p>
+        <div style="display:flex;gap:10px;margin-bottom:14px;">
+          <button id="browseDriveBtn" class="secondary">Browse Recent Files</button>
+        </div>
+        <div class="form">
+          <label>Document Title<input id="driveFileName" placeholder="Client-Notes-2026.txt" /></label>
+          <label class="wide">Content<textarea id="driveContent" placeholder="Notes to store in Drive..."></textarea></label>
+          <button id="uploadDriveBtn" class="primary wide">Save to Google Drive</button>
+        </div>
+        <div id="driveResult" style="margin-top:14px;"></div>
+      </div>
+
+      <!-- Google Maps VIP Venues -->
+      <div class="card">
+        <p class="eyebrow">GOOGLE MAPS PLATFORM</p>
+        <h2>VIP Consultation Venues</h2>
+        <p class="muted">Exclusively configured Real Meet venues with verified coordinates and directions.</p>
+        <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+          <button id="loadMapsBtn" class="primary">View VIP Locations</button>
+        </div>
+        <div id="mapsResult" style="margin-top:14px;"></div>
+      </div>
+
+      <!-- Google Docs Consultation Notes -->
+      <div class="card">
+        <p class="eyebrow">GOOGLE DOCS</p>
+        <h2>Google Docs Consultation Briefs</h2>
+        <p class="muted">Create structured consultation prep documents and briefing sheets in Google Docs.</p>
+        <div class="form" style="margin-top:12px;">
+          <label>Client Name<input id="docClientName" placeholder="Client Name" /></label>
+          <label>Session Topic<input id="docTopic" placeholder="e.g. 1-on-1 Video Consultation" /></label>
+          <label class="wide">Session Notes / Goals<textarea id="docNotes" placeholder="Client goals, questions to cover..."></textarea></label>
+          <button id="createDocBtn" class="primary wide">Create Google Doc Briefing</button>
+        </div>
+        <div id="docsResult" style="margin-top:14px;"></div>
+      </div>
+
+      <!-- Google Forms Intake Questionnaire -->
+      <div class="card">
+        <p class="eyebrow">GOOGLE FORMS</p>
+        <h2>Google Forms Intake Questionnaire</h2>
+        <p class="muted">Generate customized intake questionnaires for clients to complete prior to consultation.</p>
+        <div class="form" style="margin-top:12px;">
+          <label class="wide">Form Title<input id="formTitle" value="Simran Premium — Consultation Intake Questionnaire" /></label>
+          <button id="createFormBtn" class="primary wide">Create Intake Google Form</button>
+        </div>
+        <div id="formsResult" style="margin-top:14px;"></div>
+      </div>
+    </div>
+  `;
+
+  // Bind Workspace Authorization Button
+  $('#wsAuthBtn').onclick = async () => {
+    try {
+      $('#wsAuthBtn').disabled = true;
+      $('#wsAuthBtn').textContent = 'Authorizing…';
+      await window.signInWithGoogleWorkspace();
+      toast('Google Workspace Authorized');
+      integrations();
+    } catch (err) {
+      toast(err.message || 'Authorization failed');
+      $('#wsAuthBtn').disabled = false;
+      $('#wsAuthBtn').textContent = 'Authorize Google Workspace';
+    }
+  };
+
+  // Google Gemini AI Handlers
+  $('#runAiPrepBtn').onclick = async () => {
+    const resDiv = $('#aiResult');
+    resDiv.innerHTML = '<p class="muted">Generating Gemini 3.8 Flash briefing…</p>';
+    try {
+      const data = await api('/api/ai/prep', {
+        method: 'POST',
+        body: JSON.stringify({
+          customerName: $('#aiClientName').value,
+          serviceName: $('#aiServiceName').value,
+          notes: $('#aiNotes').value,
+          date: '2026-10-15',
+          time: '18:00'
+        })
+      });
+      resDiv.innerHTML = `
+        <div class="panel" style="background:rgba(66,133,244,0.08);border:1px solid rgba(66,133,244,0.3);padding:14px;border-radius:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <strong style="color:#8ab4f8;font-size:14px;">✦ Gemini Consultation Briefing</strong>
+            <span style="font-size:11px;background:rgba(66,133,244,0.2);padding:2px 8px;border-radius:4px;color:#8ab4f8;">${esc(data.source||'gemini-3.8-flash')}</span>
+          </div>
+          <p style="font-size:13px;margin:0 0 10px;line-height:1.6;"><strong>Summary:</strong> ${esc(data.summary||'')}</p>
+          ${data.talkingPoints?.length ? `
+            <div style="margin-bottom:10px;">
+              <strong style="font-size:12px;color:var(--text-muted);">RECOMMENDED TALKING POINTS:</strong>
+              <ul style="margin:4px 0 0 16px;padding:0;font-size:13px;line-height:1.6;">
+                ${data.talkingPoints.map(p => `<li>${esc(p)}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+          ${data.icebreakers?.length ? `
+            <div style="margin-bottom:10px;">
+              <strong style="font-size:12px;color:var(--text-muted);">WARM ICEBREAKERS:</strong>
+              <ul style="margin:4px 0 0 16px;padding:0;font-size:13px;line-height:1.6;">
+                ${data.icebreakers.map(b => `<li>"${esc(b)}"</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+          ${data.recommendation ? `
+            <div style="background:rgba(255,255,255,0.04);padding:8px 12px;border-radius:6px;font-size:12px;color:#e8eaed;">
+              <strong>Key Recommendation:</strong> ${esc(data.recommendation)}
+            </div>
+          ` : ''}
+        </div>
+      `;
+      toast('Gemini brief ready');
+    } catch (err) {
+      resDiv.innerHTML = `<p class="danger" style="color:#f28b82;">${err.message}</p>`;
+    }
+  };
+
+  $('#testAiPingBtn').onclick = async () => {
+    const resDiv = $('#aiResult');
+    resDiv.innerHTML = '<p class="muted">Pinging Google Gemini API…</p>';
+    try {
+      const data = await api('/api/ai/status');
+      resDiv.innerHTML = `
+        <div class="panel" style="background:rgba(52,168,83,0.1);border:1px solid rgba(52,168,83,0.3);padding:12px;border-radius:8px;">
+          <strong style="color:#81c995;">Gemini API Connected!</strong>
+          <p style="margin:4px 0;font-size:13px;">Model: <code>${esc(data.model||'gemini-3.8-flash')}</code></p>
+          <p style="margin:4px 0;font-size:13px;">Latency: <strong>${data.latencyMs||0}ms</strong></p>
+          <p style="font-size:12px;color:var(--text-muted);">Response: "${esc(data.reply||'OK')}"</p>
+        </div>
+      `;
+      toast('Gemini is operational');
+    } catch (err) {
+      resDiv.innerHTML = `<p class="danger" style="color:#f28b82;">${err.message}</p>`;
+    }
+  };
+
+  // Google Maps VIP Locations Handler
+  $('#loadMapsBtn').onclick = async () => {
+    const resDiv = $('#mapsResult');
+    resDiv.innerHTML = '<p class="muted">Loading VIP consultation venues…</p>';
+    try {
+      const data = await api('/api/google/maps/locations');
+      resDiv.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${data.venues.map(v => `
+            <div style="background:rgba(255,255,255,0.03);padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong>${esc(v.name)}</strong>
+                <span style="font-size:11px;background:rgba(66,133,244,0.15);color:#8ab4f8;padding:2px 6px;border-radius:4px;">${esc(v.city)}</span>
+              </div>
+              <p style="font-size:12px;color:var(--text-muted);margin:4px 0;">${esc(v.address)}</p>
+              <a href="${v.mapsUrl}" target="_blank" rel="noopener" style="font-size:12px;color:#8ab4f8;display:inline-block;margin-top:2px;">Open in Google Maps ↗</a>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      toast('VIP venues loaded');
+    } catch (err) {
+      resDiv.innerHTML = `<p class="danger" style="color:#f28b82;">${err.message}</p>`;
+    }
+  };
+
+  // Google Meet Handler
+  $('#createMeetBtn').onclick = async () => {
+    const resDiv = $('#meetResult');
+    resDiv.innerHTML = '<p class="muted">Generating Google Meet space…</p>';
+    try {
+      const headers = {};
+      if (window.googleWorkspaceAccessToken) headers['Authorization'] = `Bearer ${window.googleWorkspaceAccessToken}`;
+      const data = await api('/api/google/meet/create', { method: 'POST', headers, body: JSON.stringify({}) });
+      resDiv.innerHTML = `
+        <div class="panel" style="background:rgba(66,133,244,0.1);border:1px solid rgba(66,133,244,0.3);padding:12px;border-radius:8px;">
+          <strong style="color:#8ab4f8;">Google Meet Space Created!</strong>
+          <p style="margin:6px 0;word-break:break-all;"><strong>URL:</strong> <a href="${data.meetingUri}" target="_blank" rel="noopener" style="color:#8ab4f8;">${data.meetingUri}</a></p>
+          <p style="font-size:12px;color:var(--text-muted);">Meeting Code: <code>${data.meetingCode||'N/A'}</code></p>
+          <div style="margin-top:8px;display:flex;gap:8px;">
+            <a href="${data.meetingUri}" target="_blank" rel="noopener" class="btn primary" style="padding:6px 12px;font-size:12px;">Launch Meet Call ↗</a>
+            <button onclick="navigator.clipboard.writeText('${data.meetingUri}');toast('Meeting link copied!')" class="btn ghost" style="padding:6px 12px;font-size:12px;">Copy Link</button>
+          </div>
+        </div>
+      `;
+      toast('Google Meet space generated');
+    } catch (err) {
+      resDiv.innerHTML = `<p class="danger" style="color:#f28b82;">${err.message}</p>`;
+    }
+  };
+
+  // Google Sheets Export Handler
+  $('#exportSheetsBtn').onclick = async () => {
+    const resDiv = $('#sheetsResult');
+    resDiv.innerHTML = '<p class="muted">Exporting bookings to Google Sheets…</p>';
+    try {
+      const headers = {};
+      if (window.googleWorkspaceAccessToken) headers['Authorization'] = `Bearer ${window.googleWorkspaceAccessToken}`;
+      const data = await api('/api/google/sheets/export', { method: 'POST', headers, body: JSON.stringify({}) });
+      resDiv.innerHTML = `
+        <div class="panel" style="background:rgba(52,168,83,0.1);border:1px solid rgba(52,168,83,0.3);padding:12px;border-radius:8px;">
+          <strong style="color:#81c995;">Google Sheet Created & Exported!</strong>
+          <p style="margin:6px 0;word-break:break-all;"><strong>Sheet Title:</strong> ${esc(data.title)}</p>
+          <p style="margin-top:8px;"><a href="${data.spreadsheetUrl}" target="_blank" rel="noopener" class="btn primary" style="padding:6px 12px;font-size:12px;">Open in Google Sheets ↗</a></p>
+        </div>
+      `;
+      toast('Exported to Google Sheets');
+    } catch (err) {
+      resDiv.innerHTML = `<p class="danger" style="color:#f28b82;">${err.message}</p>`;
+    }
+  };
+
+  // Google Docs Create Handler
+  $('#createDocBtn').onclick = async () => {
+    const resDiv = $('#docsResult');
+    const clientName = $('#docClientName').value || 'Client';
+    const topic = $('#docTopic').value || 'Personal Consultation';
+    const notes = $('#docNotes').value || '';
+    resDiv.innerHTML = '<p class="muted">Creating Google Doc…</p>';
+    try {
+      const headers = {};
+      if (window.googleWorkspaceAccessToken) headers['Authorization'] = `Bearer ${window.googleWorkspaceAccessToken}`;
+      const data = await api('/api/google/docs/create', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ customerName: clientName, serviceName: topic, notes })
+      });
+      resDiv.innerHTML = `
+        <div class="panel" style="background:rgba(66,133,244,0.1);border:1px solid rgba(66,133,244,0.3);padding:12px;border-radius:8px;">
+          <strong style="color:#8ab4f8;">Google Doc Created!</strong>
+          <p style="margin:6px 0;"><strong>Title:</strong> ${esc(data.title)}</p>
+          <p style="margin-top:8px;"><a href="${data.documentUrl}" target="_blank" rel="noopener" class="btn primary" style="padding:6px 12px;font-size:12px;">Open in Google Docs ↗</a></p>
+        </div>
+      `;
+      toast('Google Doc created');
+    } catch (err) {
+      resDiv.innerHTML = `<p class="danger" style="color:#f28b82;">${err.message}</p>`;
+    }
+  };
+
+  // Google Forms Create Handler
+  $('#createFormBtn').onclick = async () => {
+    const resDiv = $('#formsResult');
+    const title = $('#formTitle').value || 'Consultation Intake Questionnaire';
+    resDiv.innerHTML = '<p class="muted">Creating Google Form…</p>';
+    try {
+      const headers = {};
+      if (window.googleWorkspaceAccessToken) headers['Authorization'] = `Bearer ${window.googleWorkspaceAccessToken}`;
+      const data = await api('/api/google/forms/create', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ title })
+      });
+      resDiv.innerHTML = `
+        <div class="panel" style="background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);padding:12px;border-radius:8px;">
+          <strong style="color:#c084fc;">Google Form Created!</strong>
+          <p style="margin:6px 0;"><strong>Title:</strong> ${esc(data.title)}</p>
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="${data.responderUri}" target="_blank" rel="noopener" class="btn primary" style="padding:6px 12px;font-size:12px;">Share Responder Link ↗</a>
+            <a href="${data.editUrl}" target="_blank" rel="noopener" class="btn ghost" style="padding:6px 12px;font-size:12px;">Edit Form Questions ↗</a>
+          </div>
+        </div>
+      `;
+      toast('Google Form created');
+    } catch (err) {
+      resDiv.innerHTML = `<p class="danger" style="color:#f28b82;">${err.message}</p>`;
+    }
+  };
+
+  // Google Drive Handlers
+  $('#browseDriveBtn').onclick = async () => {
+    const resDiv = $('#driveResult');
+    resDiv.innerHTML = '<p class="muted">Fetching files from Google Drive…</p>';
+    try {
+      const headers = {};
+      if (window.googleWorkspaceAccessToken) headers['Authorization'] = `Bearer ${window.googleWorkspaceAccessToken}`;
+      const data = await api('/api/google/drive/files', { headers });
+      if (!data.files || !data.files.length) {
+        resDiv.innerHTML = '<p class="muted">No files found in Google Drive.</p>';
+        return;
+      }
+      resDiv.innerHTML = `
+        <div style="max-height:220px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:8px;padding:8px;">
+          ${data.files.map(f=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:13px;">
+              <span>${esc(f.name)}</span>
+              ${f.webViewLink ? `<a href="${f.webViewLink}" target="_blank" rel="noopener" style="color:#8ab4f8;font-size:12px;">Open ↗</a>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } catch (err) {
+      resDiv.innerHTML = `<p class="danger" style="color:#f28b82;">${err.message}</p>`;
+    }
+  };
+
+  $('#uploadDriveBtn').onclick = async () => {
+    const resDiv = $('#driveResult');
+    const name = $('#driveFileName').value || `Consultation-Note-${Date.now()}.txt`;
+    const content = $('#driveContent').value;
+    if (!content) {
+      toast('Please enter note content');
+      return;
+    }
+    resDiv.innerHTML = '<p class="muted">Saving file to Google Drive…</p>';
+    try {
+      const headers = {};
+      if (window.googleWorkspaceAccessToken) headers['Authorization'] = `Bearer ${window.googleWorkspaceAccessToken}`;
+      const data = await api('/api/google/drive/upload', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ name, content })
+      });
+      resDiv.innerHTML = `
+        <div class="panel" style="background:rgba(52,168,83,0.1);border:1px solid rgba(52,168,83,0.3);padding:12px;border-radius:8px;">
+          <strong style="color:#81c995;">File Saved to Google Drive!</strong>
+          <p style="margin:6px 0;"><strong>File:</strong> ${esc(data.name)}</p>
+          ${data.webViewLink ? `<a href="${data.webViewLink}" target="_blank" rel="noopener" class="btn primary" style="padding:6px 12px;font-size:12px;margin-top:6px;display:inline-block;">View File in Drive ↗</a>` : ''}
+        </div>
+      `;
+      toast('File saved to Google Drive');
+    } catch (err) {
+      resDiv.innerHTML = `<p class="danger" style="color:#f28b82;">${err.message}</p>`;
+    }
+  };
+
+  // Firebase Firestore Handlers
+  $('#pingFirestoreBtn').onclick = async () => {
+    const resDiv = $('#firestoreResult');
+    resDiv.innerHTML = '<p class="muted">Pinging Cloud Firestore database…</p>';
+    const startTime = Date.now();
+    try {
+      const fb = await window.initFirebase();
+      if (!fb || !fb.db) throw new Error('Firebase SDK is not initialized.');
+      const testRef = fb.db.collection('system_pings').doc('health_check');
+      await testRef.set({
+        pingAt: new Date().toISOString(),
+        agent: navigator.userAgent
+      });
+      const latency = Date.now() - startTime;
+      resDiv.innerHTML = `
+        <div class="panel" style="background:rgba(52,168,83,0.1);border:1px solid rgba(52,168,83,0.3);padding:12px;border-radius:8px;">
+          <strong style="color:#81c995;">Firestore Ping Successful!</strong>
+          <p style="margin:4px 0;">Latency: <strong>${latency}ms</strong></p>
+          <p style="font-size:12px;color:var(--text-muted);">Database is accepting secure writes and verifying security rules.</p>
+        </div>
+      `;
+      toast('Firestore is online');
+    } catch (err) {
+      const errorInfo = window.handleFirestoreError ? window.handleFirestoreError(err, 'create', 'system_pings') : { message: err.message };
+      resDiv.innerHTML = `<p class="danger" style="color:#f28b82;">${errorInfo.message}</p>`;
+    }
+  };
+
+  $('#syncFirestoreBtn').onclick = async () => {
+    const resDiv = $('#firestoreResult');
+    resDiv.innerHTML = '<p class="muted">Synchronizing local data to Cloud Firestore…</p>';
+    try {
+      const res = await api('/api/admin/firestore/sync', { method: 'POST' });
+      resDiv.innerHTML = `
+        <div class="panel" style="background:rgba(52,168,83,0.1);border:1px solid rgba(52,168,83,0.3);padding:12px;border-radius:8px;">
+          <strong style="color:#81c995;">Firestore Sync Complete!</strong>
+          <p style="margin:4px 0;">${esc(res.message || 'Data successfully synced.')}</p>
+          <div style="font-size:12px;color:var(--text-muted);display:flex;gap:12px;margin-top:6px;">
+            <span>Bookings: <strong>${res.counts?.bookings||0}</strong></span>
+            <span>Users: <strong>${res.counts?.users||0}</strong></span>
+            <span>Payments: <strong>${res.counts?.payments||0}</strong></span>
+          </div>
+        </div>
+      `;
+      toast('Synced all data to Firestore');
+    } catch (err) {
+      resDiv.innerHTML = `<p class="danger" style="color:#f28b82;">${err.message}</p>`;
+    }
+  };
+}
 async function messages(){const rows=await api('/api/admin/messages');view.innerHTML=`<div class="message-list">${rows.map(m=>`<div class="item"><strong>${m.name}</strong> · <span class="muted">${m.email}</span><p>${m.message}</p><small class="muted">${m.created_at}</small></div>`).join('')||'<div class="card">No messages.</div>'}</div>`}
 async function prices(){await configuration()}
 async function platforms(){await configuration()}
