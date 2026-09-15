@@ -1,26 +1,35 @@
-node_modules/
+# ─── Environment ──────────────────────────────────────────────────────────────
 .env
-.env.*
-!.env.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production
+.env.production.local
+
+# ─── Dependencies ─────────────────────────────────────────────────────────────
+node_modules/
+
+# ─── Build Output ─────────────────────────────────────────────────────────────
+.next/
 dist/
 build/
-.next/
-coverage/
+out/
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ─── Keys & Credentials (NEVER COMMIT) ───────────────────────────────────────
+*.key
+*.pem
+credentials/
+service-account*.json
+google-credentials*.json
+
+# ─── Misc ─────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
-
-# Local runtime data must never be published.
-data/*
-!data/.gitkeep
-data/*.db
-data/*.db-*
-*.sqlite
-*.sqlite3
-*.db
-*.db-*
-private-data/
-customer-data/
-payment-data/
-public/uploads/*
-!public/uploads/.gitkeep
+*.tsbuildinfo
+next-env.d.ts
